@@ -1,7 +1,7 @@
 from enum import Enum
 
 class MemberProvider(str, Enum):
-    LOCAL = "LPCAL"
+    LOCAL = "LOCAL"
     GOOGLE = "GOOGLE"
     KAKAO = "KAKAO"
     NAVER = "NAVER"
