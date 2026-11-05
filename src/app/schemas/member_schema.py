@@ -15,6 +15,7 @@ class MemberVO(BaseModel):
     member_created_at: datetime | None = None
 
 
+
 # DTO
 class MemberCreateDTO(BaseModel):
     member_email: str
@@ -66,6 +67,15 @@ class MemberUpdateDTO(BaseModel):
     member_name: str | None = None
     member_age: int | None = None
     member_profile: str | None = "/members/default.jpg"
+
+    class Config:
+        from_attributes = True
+
+class MemberSummaryDTO(BaseModel):
+    id: int
+    member_email: str | None = None
+    member_name: str | None = None
+    member_pofile: str | None = "/members/default.jpg"
 
     class Config:
         from_attributes = True
