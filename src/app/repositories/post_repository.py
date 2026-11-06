@@ -6,7 +6,7 @@ from sqlalchemy.orm import joinedload
 
 from app.models.post_model import Post
 from app.models.member_model import Member
-from app.schemas.post_schema import PostCreateDTO
+from app.schemas.post_schema import PostCreateDTO, PostUpdateDTO
 from app.enums.post_enum import PostSortEnum, PostSearchEnum
 
 class PostRepository:
@@ -104,7 +104,7 @@ class PostRepository:
         )
 
         if keyword and search_keyword:
-            search_word = f"%{search_keyword}%"
+            search_word = f"%{keyword}%"
             condition = None
 
             if search_keyword == PostSearchEnum.TITLE:
@@ -150,7 +150,33 @@ class PostRepository:
 
 
     # 게시글 수정
+    async def update_post(self, post_id: int, update_data: dict) -> int:
+        query = (
+            update(Post)
+            .values(
+                **update_data,
+                post_updated_at = func.now()
+            )
+            .where(Post.id == post_id)
+            .returning(Post.id)
+        )
+
+        result = await self.db.execute(query)
+        await self.db.commit()
+        updated_post_id = result.scalar_one_or_none()
+        return updated_post_id
+
+
     # 게시글 삭제
+    async def delete_post(self, post_id: int) -> bool:
+        query = (
+            delete(Post)
+                .where(Post.id == post_id)
+        )
+
+        result = await self.db.execute(query)
+        await self.db.commit()
+        return result.rowcount > 0
 
 
 
