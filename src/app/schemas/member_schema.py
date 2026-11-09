@@ -29,6 +29,7 @@ class MemberCreateDTO(BaseModel):
     class Config:
         from_attributes = True
 
+
 class SocialMemberCreateDTO(BaseModel):
     member_email: str
     member_name: str | None = None
@@ -49,6 +50,7 @@ class MemberClaimDTO(BaseModel):
     class Config:
         from_attributes = True
 
+
 class MemberResponseDTO(BaseModel):
     id: int
     member_email: str
@@ -62,6 +64,7 @@ class MemberResponseDTO(BaseModel):
     class Config:
         from_attributes = True
 
+
 class MemberUpdateDTO(BaseModel):
     member_password: str | None = None
     member_name: str | None = None
@@ -71,11 +74,22 @@ class MemberUpdateDTO(BaseModel):
     class Config:
         from_attributes = True
 
+
 class MemberSummaryDTO(BaseModel):
     id: int
     member_email: str | None = None
     member_name: str | None = None
     member_pofile: str | None = "/members/default.jpg"
+
+    class Config:
+        from_attributes = True
+
+
+# 토큰에 들어갈 최소한의 유저 정보
+class MemberClaimDTO(BaseModel):
+    id: int
+    member_email: str
+    member_provider: str
 
     class Config:
         from_attributes = True
