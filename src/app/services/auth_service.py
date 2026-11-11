@@ -8,7 +8,7 @@ from app.utils.jwt_token_util import (
     parse_token, generate_access_token, generate_refresh_token, reissue_access_token
 )
 from app.schemas.auth_schema import JwtTokenDTO, LoginRequestDTO, SocialLoginRequestDTO
-from app.schemas.member_schema import MemberClaimDTO
+from app.schemas.member_schema import MemberClaimDTO, MemberCreateDTO
 
 load_dotenv()
 TOKEN_BLACKLIST_PREFIX = os.getenv("TOKEN_BLACKLIST_PREFIX")
@@ -117,6 +117,7 @@ class AuthService:
             refresh_token=refresh_token
         )
 
+
     # 소셜 로그인
     async def social_login_or_none(self, social_member: SocialLoginRequestDTO) -> JwtTokenDTO | None:
         member_in_db = await self.member_service.get_member_by_email_and_provider(
@@ -127,11 +128,14 @@ class AuthService:
         if not member_in_db:
             return None
 
-        member_id = member_in_db.id,
+        member_id = int(member_in_db.id)
+        member_email=str(member_in_db.member_email)
+        member_provider=str(member_in_db.member_provider)
+
         claims = MemberClaimDTO(
             id=member_id,
-            member_email=member_in_db.member_email,
-            member_provider=member_in_db.member_provider
+            member_email=member_email,
+            member_provider=member_provider
         )
 
         access_token = generate_access_token(claims)
@@ -144,23 +148,68 @@ class AuthService:
         )
 
 
+     # 소셜 로그인(회원가입 버전)
+    async def social_login_or_join(self, social_member: SocialLoginRequestDTO) -> JwtTokenDTO | None:
 
+        member_email = social_member.member_email
+        member_provider = social_member.member_provider
+        member_provider_id = social_member.member_provider_id
 
+        member_in_db = await self.member_service.get_member_by_email_and_provider(
+            member_email=member_email,
+            member_provider=member_provider,
+        )
+
+        if not member_in_db:
+            new_member = MemberCreateDTO(
+                member_email=member_email,
+                member_provider=member_provider,
+                member_provider_id=member_provider_id
+            )
+            claims = await self.member_service.join(new_member)
+            member_id = claims.id
+
+        else:
+            member_id = int(member_in_db.id)
+            member_email=str(member_in_db.member_email)
+            member_provider=str(member_in_db.member_provider)
+
+            claims = MemberClaimDTO(
+                id=member_id,
+                member_email=member_email,
+                member_provider=member_provider
+            )
+
+        access_token = generate_access_token(claims)
+        refresh_token = generate_refresh_token(claims)
+        await self.save_refresh_token(member_id, refresh_token)
+
+        return JwtTokenDTO(
+            access_token=access_token,
+            refresh_token=refresh_token
+        )
 
 
     # 로그아웃
     async def logout(self, member_id: int, tokens: JwtTokenDTO) -> None:
-        # 1. token -> decode -> 필수정보가져온다.(컨트롤러 Depends)
-        # 2. 블랙리스트에 토큰(accessTken) 등록
         access_token = tokens.access_token
         await self.save_blacklisted_token(access_token)
-        # 3. member_id가 필요 -> 토큰 삭제 
         await self.delete_refresh_token(member_id)
-        
-        
+    
 
+    # refresh -> access 재발급
+    async def refresh(self, refresh_token: str) -> str:
+        payload = parse_token(refresh_token)
+        member_id = payload.id
 
+        is_vaild: bool = await self.validate_refresh_token(member_id, refresh_token) 
+        if not is_vaild:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="유효하지 않은 Refresh Token"
+            )
 
+        return reissue_access_token(refresh_token)
 
 
 # 레포지토리 주입 팩토리 함수
@@ -171,5 +220,4 @@ def get_auth_service(
     return AuthService(redis_repo, member_service)
 
 
-    # refresh -> access 재발급
 

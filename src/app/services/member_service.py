@@ -2,7 +2,7 @@ from fastapi import Depends, HTTPException
 from app.repositories.member_repository import MemberRepository, get_member_repository
 from app.models.member_model import Member
 from app.schemas.member_schema import (
-    MemberCreateDTO, MemberClaimDTO, MemberResponseDTO, MemberUpdateDTO
+    MemberCreateDTO, MemberClaimDTO, MemberResponseDTO, MemberUpdateDTO, MemberProvider
 )
 from app.schemas.common_schema import PageResponseDTO
 
@@ -27,13 +27,13 @@ class MemberService:
                 detail="이미 존재하는 이메일입니다."
             )
 
-    # 로컬 회원 가입
+    # 회원 가입
     async def join(self, member: MemberCreateDTO) -> MemberClaimDTO:
         # 중복 확인
         await self.check_duplicate_member(member.member_email, member.member_provider)
 
         # 비밀번호 암호화
-        encrypted_password = get_password_hash(member.member_password)
+        encrypted_password = get_password_hash(member.member_password) if member.member_provider == MemberProvider.LOCAL.value else member.member_password
 
         # 암호화된 비밀번호 변경
         new_member = MemberCreateDTO(
@@ -56,17 +56,14 @@ class MemberService:
         return MemberResponseDTO.model_validate(found_member)
 
 
-    # 회원 조회(email, provider)
+        # 회원 조회(email, provider)
     async def get_member_by_email_and_provider(
             self, member_email: str, member_provider: str
-    ) -> Member:
+    ) -> Member | None:
         found_member = await self.repo.find_member_by_email_and_provider(member_email, member_provider)
         
         if not found_member:
-            raise HTTPException(
-                status_code=404,
-                detail="회원이 존재하지 않습니다"
-            )
+            return None
 
         return found_member
 
