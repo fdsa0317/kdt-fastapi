@@ -56,7 +56,7 @@ class MemberService:
         return MemberResponseDTO.model_validate(found_member)
 
 
-        # 회원 조회(email, provider)
+    # 회원 조회(email, provider)
     async def get_member_by_email_and_provider(
             self, member_email: str, member_provider: str
     ) -> Member | None:
@@ -114,17 +114,18 @@ class MemberService:
         response_member = MemberResponseDTO.model_validate(updated_member)
         return response_member
 
+    
+
 
     # 회원 탈퇴
     async def withdraw(self, id: int):
-        is_delete = await self.repo.delete_member(id)
+        is_deleted = await self.repo.delete_member(id)
 
-        if not is_delete:
+        if not is_deleted:
             raise HTTPException(
                 status_code=404,
                 detail="회원이 존재하지 않습니다"
             )
-
 
 
 

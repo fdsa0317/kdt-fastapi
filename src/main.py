@@ -4,8 +4,9 @@ from app.security.security_headers import set_up_security
 from contextlib import asynccontextmanager
 from app.infrastructure.postgresql import engine, Base
 from app.infrastructure.redis import start_redis_client
+from app.infrastructure.s3 import start_s3_client
 import app.models
-from app.apis import member_api, post_api, auth_api
+from app.apis import member_api, post_api, auth_api, s3_api
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,7 +18,10 @@ async def lifespan(app: FastAPI):
     async with start_redis_client(app):
         print("Redis 연결 성공!")
 
-        yield
+        async with start_s3_client(app):
+            print("S3 연결 성공!")
+            
+            yield
 
 app = FastAPI(
     lifespan=lifespan,
@@ -38,3 +42,4 @@ def heath_check():
 app.include_router(member_api.router, prefix="/members", tags=["members"])
 app.include_router(post_api.router, prefix="/posts", tags=["posts"])
 app.include_router(auth_api.router, prefix="/auth", tags=["auth"])
+app.include_router(s3_api.router, prefix="/uploads", tags=["uploads"])
